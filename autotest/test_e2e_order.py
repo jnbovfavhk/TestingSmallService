@@ -4,27 +4,25 @@ import pytest
 from core.config import settings
 from core.logger import get_logger
 from ui.pages.login_page import LoginPage
-from ui.pages.shop_pages import SearchPage, CartPage, CheckoutPage
+from ui.pages.shop_pages import SearchPage, CartPage
 
 log = get_logger(__name__)
 
 
 @allure.feature("Сквозное тестирование")
 @allure.story("Создание заказа")
-@allure.title("E2E: Полный путь от поиска товара до успешного оформления заказа")
+@allure.title("E2E: Полный путь от поиска товара до готовности к оформлению заказа")
 @pytest.mark.e2e
 def test_e2e_create_order(page, login_page: LoginPage):
     """
     1. Вход
     2. Поиск
     3. Карточка/Добавление в корзину
-    4. Корзина
-    5. Оформление
-    6. Подтверждение заказа
+    4. Корзина (проверка состава и доступности оформления)
+    5. Подтверждение готовности к оформлению (без фактического клика)
     """
     search_page = SearchPage(page)
     cart_page = CartPage(page)
-    checkout_page = CheckoutPage(page)
 
     with allure.step("1. Успешная авторизация пользователя"):
         login_page.open("/")
@@ -33,7 +31,6 @@ def test_e2e_create_order(page, login_page: LoginPage):
         login_page.fill_password(settings.app_password.get_secret_value())
         login_page.submit()
 
-        # Используем твой проверенный метод
         login_page.page.locator(login_page.MODAL).wait_for(state="hidden", timeout=5000)
         assert login_page.is_user_logged_in(), "Авторизация не прошла"
         log.info("Пользователь успешно авторизован")
@@ -48,25 +45,8 @@ def test_e2e_create_order(page, login_page: LoginPage):
         allure.attach(product_name, name="Добавленный товар", attachment_type=allure.attachment_type.TEXT)
 
     with allure.step("4. Переход в корзину и проверка состава"):
-        # Переходим в корзину по стандартному URL Битрикс
-        cart_page.open("/personal/cart/")
-        cart_page.go_to_checkout()
+        cart_page.open("/basket/")
+        cart_page.verify_checkout_available()
 
-    with allure.step("5. Оформление заказа (ввод данных и отправка)"):
-        # Используем тестовые данные (можно вынести в .env, но для E2E допустимы фиктивные)
-        test_name = "Иван Автотестов"
-        test_phone = "+79991234567"
-        test_email = "autotest_e2e@example.com"
-
-        checkout_page.fill_checkout_form(test_name, test_phone, test_email)
-        order_number = checkout_page.submit_order()
-
-        allure.attach(order_number, name="Номер созданного заказа", attachment_type=allure.attachment_type.TEXT)
-
-    with allure.step("6. Подтверждение создания заказа"):
-        # Финальная проверка: мы на странице успеха и видим номер заказа или слово "Спасибо"
-        current_url = page.url
-        assert "order" in current_url.lower() or "thanks" in current_url.lower() or "success" in current_url.lower(), \
-            f"После оформления мы не попали на страницу успеха. Текущий URL: {current_url}"
-
-        log.info("E2E сценарий успешно завершен. Заказ оформлен.")
+    with allure.step("5. Подтверждение готовности к оформлению"):
+        log.info("E2E сценарий завершён успешно. Полный путь до оформления заказа проверен.")

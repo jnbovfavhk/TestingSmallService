@@ -18,6 +18,12 @@ class BaseElement:
         with allure.step(f"{description}: {self.locator}"):
             self.locator.click()
 
+    def click_first(self, description: str = "Клик по первому элементу") -> None:
+        """Клик по первому найденному элементу (обход strict mode)."""
+        log.info("%s: %s (first)", description, self.locator)
+        with allure.step(f"{description}: {self.locator} (first)"):
+            self.locator.first.click()
+
     def fill(self, value: str, description: str = "Ввод текста") -> None:
         log.info("%s: %s = %s", description, self.locator, "***" if "пароль" in description.lower() else value)
         with allure.step(f"{description}: {self.locator}"):
@@ -42,3 +48,9 @@ class BaseElement:
             return True
         except Exception:
             return False
+
+    @property
+    def first(self):
+        """Возвращает первый найденный элемент (аналог .first у локатора)."""
+        # Возвращаем нативный локатор Playwright для первого элемента
+        return self.locator.first
